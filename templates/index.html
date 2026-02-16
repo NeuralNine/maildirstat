@@ -7,7 +7,22 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<body>
+<body data-grouped="{{ 1 if grouped else 0 }}">
+    <div id="toolbar">
+        <button id="choose-file" type="button">Choose file</button>
+        <input id="file-input" type="file" hidden>
+        <span id="file-name">No file selected</span>
+        <label id="top-k-wrap">
+            Top K
+            <input id="top-k" type="number" min="1" value="100">
+        </label>
+        <label>
+            <input id="grouped-toggle" type="checkbox" {{ 'checked' if grouped else '' }}>
+            Group by sender
+        </label>
+        <button id="apply-view" type="button">Load</button>
+    </div>
+
     <div id="layout">
         <div id="treemap-panel">
             <div id="treemap"></div>
@@ -28,11 +43,12 @@
                 </table>
             </div>
 
-            <div id="content">Select a mail to view its content.</div>
+            <div id="content">Choose a file and click Apply.</div>
         </div>
     </div>
 
     <script id="mails-data" type="application/json">{{ mails_meta|tojson }}</script>
+    <script id="groups-data" type="application/json">{{ groups_meta|tojson }}</script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 

@@ -1,6 +1,15 @@
-const mails = JSON.parse(document.getElementById("mails-data").textContent);
+let mails = JSON.parse(document.getElementById("mails-data").textContent);
+let groups = JSON.parse(document.getElementById("groups-data").textContent);
+let grouped = document.body.dataset.grouped === "1";
+let appliedTopK = Number(document.getElementById("top-k").value) || 100;
 const colors = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ac"];
 
+const chooseFileEl = document.getElementById("choose-file");
+const fileInputEl = document.getElementById("file-input");
+const fileNameEl = document.getElementById("file-name");
+const topKEl = document.getElementById("top-k");
+const groupedToggleEl = document.getElementById("grouped-toggle");
+const applyViewEl = document.getElementById("apply-view");
 const listEl = document.getElementById("mail-list");
 const treemapEl = document.getElementById("treemap");
 const contentEl = document.getElementById("content");
@@ -74,7 +83,79 @@ function renderList() {
 
 function renderTreemap() {
     treemapEl.textContent = "";
-    tiles.length = 0;
+    tiles.length = mails.length;
+
+    if (grouped && groups.length) {
+        const groupRects = squarify(groups.map((g) => g.totalSize), 0, 0, treemapEl.clientWidth, treemapEl.clientHeight);
+
+        groupRects.forEach((groupRect, groupIdx) => {
+            const group = groups[groupIdx];
+            const groupEl = document.createElement("div");
+            groupEl.className = "group";
+            groupEl.style.left = groupRect.x + "px";
+            groupEl.style.top = groupRect.y + "px";
+            groupEl.style.width = Math.max(0, groupRect.w) + "px";
+            groupEl.style.height = Math.max(0, groupRect.h) + "px";
+
+            if (groupRect.w > 130 && groupRect.h > 26) {
+                const label = document.createElement("div");
+                label.className = "group-label";
+                label.textContent = `${group.sender} (${sizeLabel(group.totalSize)})`;
+                groupEl.appendChild(label);
+            }
+
+            const innerOffset = 2;
+            const innerWidth = Math.max(0, groupRect.w - innerOffset * 2);
+            const innerHeight = Math.max(0, groupRect.h - innerOffset * 2);
+            const mailIndices = group.mailIndices;
+            const mailSizes = mailIndices.map((mailIdx) => mails[mailIdx].size);
+            const subRects = squarify(mailSizes, 0, 0, innerWidth, innerHeight);
+
+            subRects.forEach((r, i) => {
+                const mailIdx = mailIndices[i];
+                const mail = mails[mailIdx];
+                const tile = document.createElement("div");
+
+                tile.className = "tile";
+                tile.style.left = r.x + innerOffset + "px";
+                tile.style.top = r.y + innerOffset + "px";
+                tile.style.width = Math.max(0, r.w) + "px";
+                tile.style.height = Math.max(0, r.h) + "px";
+                tile.style.background = colors[group.colorIdx % colors.length];
+
+                if (r.w > 60 && r.h > 30) {
+                    const label = document.createElement("div");
+                    label.className = "tile-label";
+
+                    const subject = document.createElement("div");
+                    subject.textContent = mail.subject;
+
+                    const size = document.createElement("div");
+                    size.className = "tile-size";
+                    size.textContent = sizeLabel(mail.size);
+
+                    label.append(subject, size);
+                    tile.appendChild(label);
+                } else if (r.w > 26 && r.h > 14) {
+                    const size = document.createElement("div");
+                    size.className = "tile-size";
+                    size.textContent = sizeLabel(mail.size);
+                    tile.appendChild(size);
+                }
+
+                if (mailIdx === selected) tile.classList.add("selected");
+
+                tile.addEventListener("click", () => selectMail(mailIdx));
+
+                groupEl.appendChild(tile);
+                tiles[mailIdx] = tile;
+            });
+
+            treemapEl.appendChild(groupEl);
+        });
+
+        return;
+    }
 
     const rects = squarify(mails.map((m) => m.size), 0, 0, treemapEl.clientWidth, treemapEl.clientHeight);
 
@@ -114,7 +195,7 @@ function renderTreemap() {
         tile.addEventListener("click", () => selectMail(i));
 
         treemapEl.appendChild(tile);
-        tiles.push(tile);
+        tiles[i] = tile;
     });
 }
 
@@ -132,12 +213,81 @@ function selectMail(i) {
 
     contentEl.textContent = header + "Loading...";
 
-    fetch(`/mail/${i}`)
+    fetch(`/mail/${i}?grouped=${grouped ? 1 : 0}`)
         .then((r) => r.json())
         .then(({ body }) => {
             if (selected === i) contentEl.textContent = header + body;
         });
 }
+
+function setModeData(data) {
+    mails = data.mails;
+    groups = data.groups;
+    grouped = data.grouped;
+
+    selected = -1;
+    contentEl.textContent = mails.length ? "Select a mail to view its content." : "Choose a file and click Apply.";
+    renderList();
+    renderTreemap();
+}
+
+chooseFileEl.addEventListener("click", () => {
+    fileInputEl.click();
+});
+
+fileInputEl.addEventListener("change", () => {
+    fileNameEl.textContent = fileInputEl.files[0]?.name || "No file selected";
+});
+
+applyViewEl.addEventListener("click", async () => {
+    const nextGrouped = groupedToggleEl.checked;
+    const selectedFile = fileInputEl.files[0];
+    const topK = Number(topKEl.value) || 100;
+
+    if (!selectedFile && mails.length === 0) {
+        contentEl.textContent = "Choose a file and click Apply.";
+        return;
+    }
+
+    if (!selectedFile && nextGrouped === grouped && topK === appliedTopK) return;
+
+    contentEl.textContent = "Loading view...";
+    treemapEl.textContent = "Loading view...";
+    listEl.textContent = "";
+
+    chooseFileEl.disabled = true;
+    fileInputEl.disabled = true;
+    topKEl.disabled = true;
+    groupedToggleEl.disabled = true;
+    applyViewEl.disabled = true;
+
+    try {
+        let response;
+
+        if (selectedFile) {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            response = await fetch(`/load?grouped=${nextGrouped ? 1 : 0}&top_k=${topK}`, {
+                method: "POST",
+                body: formData,
+            });
+            fileInputEl.value = "";
+        } else {
+            response = await fetch(`/data?grouped=${nextGrouped ? 1 : 0}&top_k=${topK}`);
+        }
+
+        const data = await response.json();
+        setModeData(data);
+        appliedTopK = topK;
+    } finally {
+        groupedToggleEl.checked = grouped;
+        chooseFileEl.disabled = false;
+        fileInputEl.disabled = false;
+        topKEl.disabled = false;
+        groupedToggleEl.disabled = false;
+        applyViewEl.disabled = false;
+    }
+});
 
 renderList();
 renderTreemap();
