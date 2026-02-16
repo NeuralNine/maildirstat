@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>maildirstat</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div id="layout">
+        <div id="treemap-panel">
+            <div id="treemap"></div>
+        </div>
+
+        <div id="right-panel">
+            <div id="mail-list-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="subject-col">Subject</th>
+                            <th class="from-col">From</th>
+                            <th class="date-col">Date</th>
+                            <th class="size-col">Size</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mail-list"></tbody>
+                </table>
+            </div>
+
+            <div id="content">Select a mail to view its content.</div>
+        </div>
+    </div>
+
+    <script id="mails-data" type="application/json">{{ mails_meta|tojson }}</script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+
+</html>

@@ -1,0 +1,141 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    background: #1e1e1e;
+    color: #ccc;
+    font-family: sans-serif;
+    overflow: hidden;
+}
+
+#layout {
+    display: flex;
+    height: 100vh;
+}
+
+#treemap-panel {
+    flex: 1.5;
+    min-width: 240px;
+    position: relative;
+}
+
+#treemap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+#right-panel {
+    flex: 0.85;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #333;
+}
+
+#mail-list-wrap {
+    flex: 0.7;
+    overflow: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    table-layout: fixed;
+}
+
+thead {
+    position: sticky;
+    top: 0;
+    background: #3a3a3a;
+}
+
+th, td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+tr {
+    cursor: pointer;
+}
+
+tr:hover {
+    background: #343434;
+}
+
+tr.selected {
+    background: #4e79a7;
+}
+
+.subject-col {
+    width: 36%;
+}
+
+.from-col {
+    width: 30%;
+}
+
+.date-col {
+    width: 22%;
+}
+
+.size-col {
+    width: 12%;
+    text-align: right;
+}
+
+#content {
+    flex: 1;
+    border-top: 2px solid #333;
+    padding: 14px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+    font-size: 13px;
+    background: #242424;
+}
+
+.tile {
+    position: absolute;
+    border: 2px solid #1e1e1e;
+    color: #fff;
+    font-size: 11px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.tile-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    max-width: 100%;
+}
+
+.tile-size {
+    font-size: 10px;
+    opacity: 0.85;
+}
+
+.tile:hover {
+    border-color: #aaa;
+}
+
+.tile.selected {
+    border-color: #fff;
+    border-width: 3px;
+}
